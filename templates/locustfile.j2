@@ -1,0 +1,57 @@
+from locust import HttpUser, task, between, constant
+import random
+from faker import Faker
+
+fake = Faker()
+
+class DynamicUser(HttpUser):
+    wait_time = between({{ wait_min }}, {{ wait_max }})
+
+    {% for scenario in scenarios %}
+    @task({{ scenario.weight }})
+    def task_{{ loop.index }}(self):
+        url = "{{ scenario.path }}"
+        method = "{{ scenario.method }}".lower()
+        
+        # Path parameter substitution
+        {% if scenario.path_params %}
+        path_params = {
+            {% for k, v in scenario.path_params.items() %}
+            "{{ k }}": {{ v | pythonize }},
+            {% endfor %}
+        }
+        url = url.format(**path_params)
+        {% endif %}
+
+        # Query parameters
+        params = {}
+        {% if scenario.query_params %}
+        {% for k, v in scenario.query_params.items() %}
+        params["{{ k }}"] = {{ v | pythonize }}
+        {% endfor %}
+        {% endif %}
+
+        # Headers
+        headers = {}
+        {% if scenario.headers %}
+        {% for k, v in scenario.headers.items() %}
+        headers["{{ k }}"] = {{ v | pythonize }}
+        {% endfor %}
+        {% endif %}
+
+        # Body
+        {% if scenario.body %}
+        data = {{ scenario.body }}
+        {% else %}
+        data = None
+        {% endif %}
+
+        if method == "get":
+            self.client.get(url, params=params, headers=headers, name="{{ scenario.path }}")
+        elif method == "post":
+            self.client.post(url, json=data, params=params, headers=headers, name="{{ scenario.path }}")
+        elif method == "put":
+            self.client.put(url, json=data, params=params, headers=headers, name="{{ scenario.path }}")
+        elif method == "delete":
+            self.client.delete(url, params=params, headers=headers, name="{{ scenario.path }}")
+    {% endfor %}

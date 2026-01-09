@@ -30,7 +30,7 @@ class ScenarioConfig(BaseModel):
     path_params: Dict[str, str] = {}
     query_params: Dict[str, str] = {}
     headers: Dict[str, str] = {}
-    body: Optional[Dict[str, Any]] = None
+    body: Optional[Any] = None
 
 class RunConfig(BaseModel):
     wait_min: int = 1
@@ -56,6 +56,11 @@ async def run_test(config: RunConfig):
     if running_process and running_process.poll() is None:
         # Stop existing
         os.kill(running_process.pid, signal.SIGTERM)
+        try:
+            running_process.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            os.kill(running_process.pid, signal.SIGKILL)
+            running_process.wait()
         
     # Generate locustfile.py
     env = Environment(loader=FileSystemLoader("templates"))

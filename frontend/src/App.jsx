@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LocustGuide from './LocustGuide';
 import FakerGuide from './FakerGuide';
+import UsageGuide from './UsageGuide';
 
 const API_BASE = 'http://localhost:8001';
 
@@ -12,7 +13,9 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showFakerGuide, setShowFakerGuide] = useState(false);
+  const [showUsage, setShowUsage] = useState(false);
   const [file, setFile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     checkStatus();
@@ -46,6 +49,7 @@ function App() {
       console.log("Server response:", data);
 
       if (res.ok && data && data.endpoints) {
+        setFile(file);
         if (data.endpoints.length === 0) {
           alert("このOpenAPIファイルにはエンドポイントが見つかりませんでした。ファイル構造を確認してください。");
         }
@@ -62,7 +66,7 @@ function App() {
             path_params: (ep.parameters || []).filter(p => p.in_ === 'path').reduce((acc, p) => ({ ...acc, [p.name]: p.example !== undefined && p.example !== null ? String(p.example) : "fake.random_int(1, 100)" }), {}),
             query_params: (ep.parameters || []).filter(p => p.in_ === 'query').reduce((acc, p) => ({ ...acc, [p.name]: p.example !== undefined && p.example !== null ? String(p.example) : "fake.word()" }), {}),
             headers: (ep.parameters || []).filter(p => p.in_ === 'header').reduce((acc, p) => ({ ...acc, [p.name]: p.example !== undefined && p.example !== null ? String(p.example) : "" }), {}),
-            body: ep.request_body ? {} : null
+            body: ep.request_body !== undefined && ep.request_body !== null ? ep.request_body : null
           };
         });
         setScenarios(initialScenarios);
@@ -85,6 +89,8 @@ function App() {
       return;
     }
 
+    setIsLoading(true);
+
     const payload = {
       wait_min: 1,
       wait_max: 5,
@@ -99,10 +105,45 @@ function App() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
+
+      const startTime = Date.now();
+
+      // Wait for Locust UI to be ready
+      const checkLocustReady = async (url, attempts = 15) => {
+        // Initial small delay to let backend kill the old process
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        for (let i = 0; i < attempts; i++) {
+          try {
+            // Use a cache-busting query param or a fresh check
+            const locustRes = await fetch(`${url}?t=${Date.now()}`, { mode: 'no-cors' });
+            return true;
+          } catch (e) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        return false;
+      };
+
+      const isReady = await checkLocustReady(data.locust_ui);
+
+      // Ensure at least 2 seconds of spinner for UX
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 2000) {
+        await new Promise(resolve => setTimeout(resolve, 2000 - elapsed));
+      }
+
       setIsRunning(true);
-      window.open(data.locust_ui, '_blank');
+
+      if (isReady) {
+        window.open(data.locust_ui, '_blank');
+      } else {
+        alert("Locustの起動に時間がかかっています。しばらくしてから http://localhost:8089 を開いてください。");
+      }
     } catch (err) {
       alert("テストの開始に失敗しました: " + err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -139,16 +180,22 @@ function App() {
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>Load testing made elegant.</p>
           <button
-            onClick={() => setShowGuide(true)}
-            style={{ marginTop: '10px', marginRight: '10px', padding: '4px 12px', fontSize: '12px', backgroundColor: 'rgba(255,255,255,0.1)', color: 'var(--primary)', border: '1px solid var(--primary)' }}
+            onClick={() => setShowUsage(true)}
+            style={{ marginTop: '10px', marginRight: '10px', padding: '4px 12px', fontSize: '12px', backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text)', border: '1px solid rgba(255,255,255,0.1)' }}
           >
-            📚 負荷テストガイド
+            ❓ 使い方・Tips
+          </button>
+          <button
+            onClick={() => setShowGuide(true)}
+            style={{ marginTop: '10px', marginRight: '10px', padding: '4px 12px', fontSize: '12px', backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text)', border: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            📚 負荷テスト基礎
           </button>
           <button
             onClick={() => setShowFakerGuide(true)}
-            style={{ marginTop: '10px', padding: '4px 12px', fontSize: '12px', backgroundColor: 'rgba(255,255,255,0.1)', color: '#92fe9d', border: '1px solid #92fe9d' }}
+            style={{ marginTop: '10px', padding: '4px 12px', fontSize: '12px', backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text)', border: '1px solid rgba(255,255,255,0.1)' }}
           >
-            🎲 データ生成(Faker)ガイド
+            🎲 Fakerガイド
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -159,7 +206,10 @@ function App() {
           {isRunning ? (
             <button onClick={handleStop} style={{ backgroundColor: 'var(--danger)', color: 'white' }}>STOP TEST</button>
           ) : (
-            <button onClick={handleRun} disabled={endpoints.length === 0} style={{ backgroundColor: 'var(--primary)', color: 'var(--bg)' }}>START TEST</button>
+            <button onClick={handleRun} disabled={endpoints.length === 0 || isLoading} style={{ backgroundColor: 'var(--primary)', color: 'var(--bg)' }}>
+              {isLoading && <span className="spinner"></span>}
+              {isLoading ? 'STARTING...' : 'START TEST'}
+            </button>
           )}
         </div>
       </header>
@@ -170,7 +220,20 @@ function App() {
           <h3 style={{ marginBottom: '16px' }}>Configuration</h3>
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '12px', marginBottom: '8px', color: 'var(--text-muted)' }}>OPENAPI YAML</label>
-            <input type="file" onChange={handleUpload} style={{ fontSize: '12px' }} />
+            <div className="file-upload-container">
+              <span className="file-upload-icon">📄</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {file ? file.name : 'Select OpenAPI YAML'}
+                </div>
+                {!file && (
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                    YAML or JSON
+                  </div>
+                )}
+              </div>
+              <input type="file" onChange={handleUpload} accept=".yaml,.yml,.json" title="" />
+            </div>
           </div>
 
           <div style={{ marginBottom: '20px' }}>
@@ -178,23 +241,8 @@ function App() {
             <input type="text" value={host} onChange={e => setHost(e.target.value)} style={{ width: '100%' }} />
           </div>
 
-          <div style={{ padding: '12px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.2)', fontSize: '11px', lineHeight: '1.5' }}>
-            <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: '8px' }}>🚀 使い方</strong>
-            <ol style={{ paddingLeft: '16px', margin: '0' }}>
-              <li>YAMLを読み込み、負荷をかけたいAPIをチェック。</li>
-              <li>必要に応じてパラメータやWeightを調整。</li>
-              <li><strong>START TEST</strong> をクリック。</li>
-              <li>自動で開く <strong>Locust Web UI</strong> にて、同時ユーザー数を入力してテストを開始してください。</li>
-            </ol>
-          </div>
-
-          <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', fontSize: '11px', lineHeight: '1.5', marginTop: '12px' }}>
-            <strong style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>💡 WEIGHT（重み）とは？</strong>
-            複数のAPIを選択している場合のリクエスト頻度の比率です。数値が大きいほど、そのAPIが優先的に実行されます。
-          </div>
-
           <h3 style={{ marginBottom: '16px', marginTop: '32px' }}>Endpoints ({endpoints.length})</h3>
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <div style={{ height: 'calc(100vh - 320px)', minHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
             {endpoints.map((ep, idx) => (
               <div
                 key={idx}
@@ -305,7 +353,7 @@ function App() {
                   <div>
                     <h4 style={{ color: 'var(--primary)', fontSize: '14px', marginBottom: '12px' }}>REQUEST BODY (JSON Snippet)</h4>
                     <textarea
-                      style={{ width: '100%', minHeight: '150px', background: 'rgba(15,23,42,0.5)', color: 'white', borderRadius: '8px', padding: '12px', border: '1px solid rgba(148,163,184,0.2)', fontFamily: 'monospace' }}
+                      style={{ width: '100%', minHeight: '350px', resize: 'vertical', background: 'rgba(15,23,42,0.5)', color: 'white', borderRadius: '8px', padding: '12px', border: '1px solid rgba(148,163,184,0.2)', fontFamily: 'monospace' }}
                       value={JSON.stringify(currentScenario.body, null, 2)}
                       onChange={e => {
                         try {
@@ -321,6 +369,7 @@ function App() {
           )}
         </div>
       </div>
+      {showUsage && <UsageGuide onClose={() => setShowUsage(false)} />}
       {showGuide && <LocustGuide onClose={() => setShowGuide(false)} />}
       {showFakerGuide && <FakerGuide onClose={() => setShowFakerGuide(false)} />}
     </div>

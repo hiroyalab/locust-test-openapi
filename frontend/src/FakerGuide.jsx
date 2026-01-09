@@ -83,6 +83,15 @@ const FakerGuide = ({ onClose }) => {
                     - Pythonの組み込み関数も使用可能です（例: <code>str(random.randint(1,1000))</code>）。<br />
                     - <code>fake.</code> で始まらないテキストを入力した場合は、そのまま固定値として扱われます。
                 </div>
+
+                <div style={{ marginTop: '32px', textAlign: 'center' }}>
+                    <button
+                        onClick={onClose}
+                        style={{ background: 'var(--primary)', color: 'var(--bg)', padding: '10px 32px' }}
+                    >
+                        閉じる
+                    </button>
+                </div>
             </div>
         </div>
     );

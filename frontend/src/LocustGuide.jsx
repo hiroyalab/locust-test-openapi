@@ -118,17 +118,25 @@ const LocustGuide = ({ onClose }) => {
                             </tr>
                         </tbody>
                     </table>
+                    <div style={{ background: 'linear-gradient(45deg, rgba(99, 102, 241, 0.2), rgba(0, 210, 255, 0.2))', padding: '24px', borderRadius: '16px', border: '1px solid var(--accent)' }}>
+                        <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '20px' }}>📊</span> 結果の見極めポイント
+                        </h3>
+                        <ul style={{ fontSize: '0.95rem', lineHeight: '1.8', listStyle: 'none', padding: 0 }}>
+                            <li>✅ <strong>RPS (Total Requests per Second):</strong> システムの「秒間処理数」。Userを増やしてもここが上がらなくなったら限界です。</li>
+                            <li>✅ <strong>95%ile Response Time:</strong> 「ほとんどのユーザー（95%）がこの秒数以内に返ってきた」という指標。平均よりこちらを重視しましょう。</li>
+                            <li>✅ <strong>Failures:</strong> 限界を超えるとタイムアウトや5xxエラーが増え始めます。</li>
+                        </ul>
+                    </div>
                 </section>
 
-                <div style={{ background: 'linear-gradient(45deg, rgba(99, 102, 241, 0.2), rgba(0, 210, 255, 0.2))', padding: '24px', borderRadius: '16px', border: '1px solid var(--accent)' }}>
-                    <h3 style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '20px' }}>📊</span> 結果の見極めポイント
-                    </h3>
-                    <ul style={{ fontSize: '0.95rem', lineHeight: '1.8', listStyle: 'none', padding: 0 }}>
-                        <li>✅ <strong>RPS (Total Requests per Second):</strong> システムの「秒間処理数」。Userを増やしてもここが上がらなくなったら限界です。</li>
-                        <li>✅ <strong>95%ile Response Time:</strong> 「ほとんどのユーザー（95%）がこの秒数以内に返ってきた」という指標。平均よりこちらを重視しましょう。</li>
-                        <li>✅ <strong>Failures:</strong> 限界を超えるとタイムアウトや5xxエラーが増え始めます。</li>
-                    </ul>
+                <div style={{ textAlign: 'center' }}>
+                    <button
+                        onClick={onClose}
+                        style={{ background: 'var(--primary)', color: 'var(--bg)', padding: '10px 32px' }}
+                    >
+                        閉じる
+                    </button>
                 </div>
             </div>
         </div>

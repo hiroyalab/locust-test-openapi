@@ -83,6 +83,9 @@ async def run_test(config: RunConfig):
         scenarios=config.scenarios
     )
     
+    # Ensure output directory exists
+    os.makedirs("backend/data", exist_ok=True)
+    
     with open("backend/data/dynamic_locustfile.py", "w") as f:
         f.write(rendered_content)
         

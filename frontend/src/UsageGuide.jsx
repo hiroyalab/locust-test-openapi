@@ -61,7 +61,8 @@ const UsageGuide = ({ onClose }) => {
                                 <li><strong>Params/Body:</strong> 送信データのサンプルを調整。<code>fake.name()</code> 等のFakerも利用可能。</li>
                             </ul>
                         </li>
-                        <li><strong>テスト開始:</strong> <strong>START TEST</strong> をクリックするとLocustが起動し、自動的にダッシュボードが開きます。</li>
+                        <li><strong>Locust起動:</strong> <strong>START LOCUST</strong> をクリックするとLocustエンジンが起動し、自動的にダッシュボードが開きます。実際の負荷テスト（User数やRamp-upの指定）は、そのダッシュボード上で行います。</li>
+                        <li><strong>Locust停止:</strong> <strong>STOP LOCUST</strong> をクリックすると実行中のLocustエンジンを停止します。テストが完了したら必ず停止してください。</li>
                     </ol>
                 </section>
 

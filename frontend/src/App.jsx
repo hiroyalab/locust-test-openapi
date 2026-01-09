@@ -17,11 +17,7 @@ function App() {
   const [file, setFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    checkStatus();
-    const timer = setInterval(checkStatus, 5000);
-    return () => clearInterval(timer);
-  }, []);
+
 
   const checkStatus = async () => {
     try {
@@ -127,16 +123,9 @@ function App() {
 
       const isReady = await checkLocustReady(data.locust_ui);
 
-      // Ensure at least 2 seconds of spinner for UX
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 2000) {
-        await new Promise(resolve => setTimeout(resolve, 2000 - elapsed));
-      }
-
-      setIsRunning(true);
-
       if (isReady) {
         window.open(data.locust_ui, '_blank');
+        setIsRunning(true);
       } else {
         alert("Locustの起動に時間がかかっています。しばらくしてから http://localhost:8089 を開いてください。");
       }
@@ -201,14 +190,14 @@ function App() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <div>
             <span className={`status-indicator ${isRunning ? 'status-running' : 'status-stopped'}`}></span>
-            <span style={{ fontWeight: 600 }}>{isRunning ? 'RUNNING' : 'IDLE'}</span>
+            <span style={{ fontWeight: 600 }}>{isRunning ? 'LOCUST ACTIVE' : 'READY'}</span>
           </div>
           {isRunning ? (
-            <button onClick={handleStop} style={{ backgroundColor: 'var(--danger)', color: 'white' }}>STOP TEST</button>
+            <button onClick={handleStop} style={{ backgroundColor: 'var(--danger)', color: 'white' }}>STOP LOCUST</button>
           ) : (
             <button onClick={handleRun} disabled={endpoints.length === 0 || isLoading} style={{ backgroundColor: 'var(--primary)', color: 'var(--bg)' }}>
               {isLoading && <span className="spinner"></span>}
-              {isLoading ? 'STARTING...' : 'START TEST'}
+              {isLoading ? 'STARTING...' : 'START LOCUST'}
             </button>
           )}
         </div>
